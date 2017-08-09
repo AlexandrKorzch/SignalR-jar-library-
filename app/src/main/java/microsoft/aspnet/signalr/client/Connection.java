@@ -6,13 +6,13 @@ See License.txt in the project root for license information.
 
 package microsoft.aspnet.signalr.client;
 
-import java.util.Date;
-import java.util.Map;
-
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
+
+import java.util.Date;
+import java.util.Map;
 
 import microsoft.aspnet.signalr.client.http.Request;
 import microsoft.aspnet.signalr.client.transport.AutomaticTransport;
@@ -21,7 +21,6 @@ import microsoft.aspnet.signalr.client.transport.ConnectionType;
 import microsoft.aspnet.signalr.client.transport.DataResultCallback;
 import microsoft.aspnet.signalr.client.transport.NegotiationResponse;
 import microsoft.aspnet.signalr.client.transport.TransportHelper;
-import microsoft.aspnet.signalr.client.Logger;
 
 /**
  * Represents a basic SingalR connection
@@ -88,7 +87,7 @@ public class Connection implements ConnectionBase {
 
     /**
      * Initializes the connection with an URL
-     * 
+     *
      * @param url
      *            The connection URL
      */
@@ -98,7 +97,7 @@ public class Connection implements ConnectionBase {
 
     /**
      * Initializes the connection with an URL and a query string
-     * 
+     *
      * @param url
      *            The connection URL
      * @param queryString
@@ -110,7 +109,7 @@ public class Connection implements ConnectionBase {
 
     /**
      * Initializes the connection with an URL and a logger
-     * 
+     *
      * @param url
      *            The connection URL
      * @param logger
@@ -122,7 +121,7 @@ public class Connection implements ConnectionBase {
 
     /**
      * Initializes the connection with an URL, a query string and a Logger
-     * 
+     *
      * @param url
      *            The connection URL
      * @param queryString
@@ -254,7 +253,7 @@ public class Connection implements ConnectionBase {
 
     /**
      * Starts the connection using the best available transport
-     * 
+     *
      * @return A Future for the operation
      */
     public SignalRFuture<Void> start() {
@@ -263,7 +262,7 @@ public class Connection implements ConnectionBase {
 
     /**
      * Sends a serialized object
-     * 
+     *
      * @param object
      *            The object to send. If the object is a JsonElement, its string
      *            representation is sent. Otherwise, the object is serialized to
@@ -309,7 +308,7 @@ public class Connection implements ConnectionBase {
 
     /**
      * Handles a Future error, invoking the connection onError event
-     * 
+     *
      * @param future
      *            The future to handle
      * @param mustCleanCurrentConnection
@@ -339,7 +338,7 @@ public class Connection implements ConnectionBase {
             log("Start the connection, using " + transport.getName() + " transport", LogLevel.Information);
 
             mTransport = transport;
-            mConnectionFuture = new UpdateableCancellableFuture<Void>(null);
+            mConnectionFuture = new UpdateableCancellableFuture<>(null);
             handleFutureError(mConnectionFuture, true);
 
             log("Start negotiation", LogLevel.Verbose);
@@ -352,7 +351,7 @@ public class Connection implements ConnectionBase {
                     public void run(NegotiationResponse negotiationResponse) throws Exception {
                         log("Negotiation completed", LogLevel.Information);
                         if (!verifyProtocolVersion(negotiationResponse.getProtocolVersion())) {
-                            Exception err = new InvalidProtocolVersionException(negotiationResponse.getProtocolVersion()); 
+                            Exception err = new InvalidProtocolVersionException(negotiationResponse.getProtocolVersion());
                             onError(err, true);
                             mConnectionFuture.triggerError(err);
                             return;
@@ -372,15 +371,15 @@ public class Connection implements ConnectionBase {
                         startTransport(keepAliveData, false);
                     }
                 });
-                
+
                 negotiationFuture.onError(new ErrorCallback() {
-                    
+
                     @Override
                     public void onError(Throwable error) {
                         mConnectionFuture.triggerError(error);
                     }
                 });
-                
+
             } catch (Exception e) {
                 onError(e, true);
             }
@@ -394,7 +393,7 @@ public class Connection implements ConnectionBase {
 
     /**
      * Changes the connection state
-     * 
+     *
      * @param oldState
      *            The expected old state
      * @param newState
@@ -414,7 +413,6 @@ public class Connection implements ConnectionBase {
                 }
                 return true;
             }
-
             return false;
         }
     }
@@ -519,7 +517,7 @@ public class Connection implements ConnectionBase {
                     onError(e, false);
                 }
             }
-            
+
             if (mHeartbeatMonitor != null) {
                 log("Stopping Heartbeat monitor", LogLevel.Verbose);
                 mHeartbeatMonitor.stop();
@@ -589,7 +587,7 @@ public class Connection implements ConnectionBase {
 
     /**
      * Verifies the protocol version
-     * 
+     *
      * @param versionString
      *            String representing a Version
      * @return True if the version is supported.
@@ -611,7 +609,7 @@ public class Connection implements ConnectionBase {
 
     /**
      * Starts the transport
-     * 
+     *
      * @param keepAliveData
      *            Keep Alive data for heartbeat monitor
      * @param isReconnecting
@@ -632,7 +630,6 @@ public class Connection implements ConnectionBase {
                     log("Stopping heartbeat monitor", LogLevel.Verbose);
                     mHeartbeatMonitor.stop();
                 }
-
                 changeState(ConnectionState.Connected, ConnectionState.Reconnecting);
                 onReconnecting();
             }
@@ -651,11 +648,12 @@ public class Connection implements ConnectionBase {
             });
 
             mHeartbeatMonitor.setOnTimeout(new Runnable() {
-
                 @Override
                 public void run() {
                     log("Timeout", LogLevel.Information);
-                    reconnect();
+                    if (mState != ConnectionState.Connected) {
+                        reconnect();
+                    }
                 }
             });
 
@@ -676,13 +674,13 @@ public class Connection implements ConnectionBase {
 
             mConnectionFuture.setFuture(future);
             future.onError(new ErrorCallback() {
-                
+
                 @Override
                 public void onError(Throwable error) {
                     mConnectionFuture.triggerError(error);
                 }
             });
-            
+
             mKeepAliveData = keepAliveData;
 
             try {
@@ -694,18 +692,13 @@ public class Connection implements ConnectionBase {
                             log("Entered startLock after transport was started", LogLevel.Verbose);
                             log("Current state: " + mState, LogLevel.Verbose);
                             if (changeState(ConnectionState.Reconnecting, ConnectionState.Connected)) {
-
                                 log("Starting Heartbeat monitor", LogLevel.Verbose);
                                 mHeartbeatMonitor.start(mKeepAliveData, that);
-                                
                                 log("Reconnected", LogLevel.Information);
                                 onReconnected();
-
                             } else if (changeState(ConnectionState.Connecting, ConnectionState.Connected)) {
-
                                 log("Starting Heartbeat monitor", LogLevel.Verbose);
                                 mHeartbeatMonitor.start(mKeepAliveData, that);
-                                
                                 log("Connected", LogLevel.Information);
                                 onConnected();
                                 mConnectionFuture.setResult(null);
@@ -721,7 +714,7 @@ public class Connection implements ConnectionBase {
 
     /**
      * Parses the received data and triggers the OnReceived event
-     * 
+     *
      * @param data
      *            The received data
      */
@@ -744,7 +737,7 @@ public class Connection implements ConnectionBase {
 
     /**
      * Processes a received message
-     * 
+     *
      * @param message
      *            The message to process
      * @return The processed message
@@ -791,12 +784,13 @@ public class Connection implements ConnectionBase {
      */
     private void reconnect() {
         if (mState == ConnectionState.Connected) {
-            log("Stopping Heartbeat monitor", LogLevel.Verbose);
+            log("Reconnect called", LogLevel.Verbose);
             if (mHeartbeatMonitor != null) {
+                log("Stopping Heartbeat monitor", LogLevel.Verbose);
                 mHeartbeatMonitor.stop();
+                log("Restarting the transport", LogLevel.Information);
+                startTransport(mHeartbeatMonitor.getKeepAliveData(), true);
             }
-            log("Restarting the transport", LogLevel.Information);
-            startTransport(mHeartbeatMonitor.getKeepAliveData(), true);
         }
     }
 
