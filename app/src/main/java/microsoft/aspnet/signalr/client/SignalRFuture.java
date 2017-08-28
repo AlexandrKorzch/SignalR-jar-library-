@@ -7,6 +7,7 @@ See License.txt in the project root for license information.
 package microsoft.aspnet.signalr.client;
 
 import java.util.ArrayList;
+import java.util.ConcurrentModificationException;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -49,8 +50,12 @@ public class SignalRFuture<V> implements Future<V> {
     public void cancel() {
         mIsCancelled = true;
         if (mOnCancelled != null) {
-            for (Runnable onCancelled : mOnCancelled) {
-                onCancelled.run();
+            try {
+                for (Runnable onCancelled : mOnCancelled) {
+                    onCancelled.run();
+                }
+            } catch (ConcurrentModificationException e) {
+                e.printStackTrace();
             }
         }
         mResultSemaphore.release();
