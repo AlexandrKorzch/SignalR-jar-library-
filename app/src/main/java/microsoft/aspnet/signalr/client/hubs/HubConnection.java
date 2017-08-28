@@ -6,21 +6,22 @@ See License.txt in the project root for license information.
 
 package microsoft.aspnet.signalr.client.hubs;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Locale;
-import java.util.Map;
-
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
+import java.util.Collections;
+import java.util.ConcurrentModificationException;
+import java.util.HashMap;
+import java.util.Locale;
+import java.util.Map;
+
 import microsoft.aspnet.signalr.client.Action;
+import microsoft.aspnet.signalr.client.Connection;
 import microsoft.aspnet.signalr.client.ConnectionState;
 import microsoft.aspnet.signalr.client.InvalidStateException;
 import microsoft.aspnet.signalr.client.LogLevel;
 import microsoft.aspnet.signalr.client.Logger;
-import microsoft.aspnet.signalr.client.Connection;
 
 /**
  * Represents a SignalRConnection that implements the Hubs protocol
@@ -169,12 +170,16 @@ public class HubConnection extends Connection {
         HubResult result = new HubResult();
         result.setError(error);
 
-        for (String key : mCallbacks.keySet()) {
-            try {
-                log("Invoking callback with empty result: " + key, LogLevel.Verbose);
-                mCallbacks.get(key).run(result);
-            } catch (Exception e) {
+        try {
+            for (String key : mCallbacks.keySet()) {
+                try {
+                    log("Invoking callback with empty result: " + key, LogLevel.Verbose);
+                    mCallbacks.get(key).run(result);
+                } catch (Exception e) {
+                }
             }
+        } catch (ConcurrentModificationException e) {
+            e.printStackTrace();
         }
 
         mCallbacks.clear();
